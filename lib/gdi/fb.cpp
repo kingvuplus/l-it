@@ -8,6 +8,9 @@
 #include <linux/kd.h>
 
 #include <lib/gdi/fb.h>
+#ifdef __sh__
+#include <linux/stmfb.h>
+#endif
 
 #ifndef FBIO_WAITFORVSYNC
 #define FBIO_WAITFORVSYNC _IOW('F', 0x20, __u32)
@@ -64,8 +67,8 @@ fbClass::fbClass(const char *fb)
 
 	available=fix.smem_len;
 	m_phys_mem = fix.smem_start;
-#if defined(__sh__)
 	eDebug("%dk total video mem", available/1024);
+#if defined(__sh__)	
 	// The first 1920x1080x4 bytes are reserved
 	// After that we can take 1280x720x4 bytes for our virtual framebuffer
 	available -= 1920*1080*4;
@@ -80,10 +83,12 @@ fbClass::fbClass(const char *fb)
 		perror("mmap");
 		goto nolfb;
 	}
-
-	showConsole(0);
+	
+#if not defined(__sh__)	
+        showConsole(0);
 
 	enableManualBlit();
+#endif	
 	return;
 nolfb:
 	if (fbFd >= 0)
@@ -95,9 +100,9 @@ nolfb:
 	return;
 }
 
+#if not defined(__sh__)
 int fbClass::showConsole(int state)
 {
-#if not defined(__sh__)
 	int fd=open("/dev/tty0", O_RDWR);
 	if(fd>=0)
 	{
@@ -107,9 +112,9 @@ int fbClass::showConsole(int state)
 		}
 		close(fd);
 	}
-#endif
 	return 0;
 }
+#endif
 
 int fbClass::SetMode(int nxRes, int nyRes, int nbpp)
 {
@@ -328,8 +333,10 @@ fbClass::~fbClass()
 		msync(lfb, available, MS_SYNC);
 		munmap(lfb, available);
 	}
+#if not defined(__sh__)	
 	showConsole(1);
 	disableManualBlit();
+#endif	
 	if (fbFd >= 0)
 	{
 		::close(fbFd);
@@ -347,13 +354,16 @@ int fbClass::lock()
 {
 	if (locked)
 		return -1;
+#if not defined(__sh__)		
 	if (m_manual_blit == 1)
 	{
 		locked = 2;
 		disableManualBlit();
 	}
 	else
+#endif	
 		locked = 1;
+		
 #if defined(__sh__)
 	outcfg.outputid = STMFBIO_OUTPUTID_MAIN;
 	if (ioctl( fbFd, STMFBIO_GET_OUTPUT_CONFIG, &outcfg ) < 0)
@@ -405,16 +415,15 @@ void fbClass::unlock()
 	PutCMAP();
 }
 
+#if not defined(__sh__)
 void fbClass::enableManualBlit()
 {
-#if not defined(__sh__)
 	unsigned char tmp = 1;
 	if (fbFd < 0) return;
 	if (ioctl(fbFd,FBIO_SET_MANUAL_BLIT, &tmp)<0)
 		perror("FBIO_SET_MANUAL_BLIT");
 	else
 		m_manual_blit = 1;
-#endif
 }
 
 void fbClass::disableManualBlit()
@@ -426,8 +435,8 @@ void fbClass::disableManualBlit()
 		perror("FBIO_SET_MANUAL_BLIT");
 	else
 		m_manual_blit = 0;
-#endif
 }
+#endif
 
 #if defined(__sh__)
 void fbClass::clearFBblit()
