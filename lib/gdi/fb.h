@@ -23,7 +23,7 @@ class fbClass
 	int available;
 	struct fb_var_screeninfo screeninfo;
 	fb_cmap cmap;
-	__u16 red[256], green[256], blue[256], trans[256];
+	uint16_t red[256], green[256], blue[256], trans[256];
 	static fbClass *instance;
 	int locked;
 
@@ -37,19 +37,19 @@ public:
 #else
 public:
 	unsigned char *lfb;
-#if not defined(__sh__)	
+#if not defined(__sh__)
 	void enableManualBlit();
 	void disableManualBlit();
 	int showConsole(int state);
-#endif	
+#endif
 	int SetMode(int xRes, int yRes, int bpp);
 	void getMode(int &xres, int &yres, int &bpp);
 	int Available() { return available; }
-	
+
 	int getNumPages() { return m_number_of_pages; }
-	
+
 	unsigned long getPhysAddr() { return m_phys_mem; }
-	
+
 	int setOffset(int off);
 	int waitVSync();
 	void blit();
@@ -58,18 +58,11 @@ public:
 
 	fbClass(const char *fb="/dev/fb0");
 	~fbClass();
-	
+
 			// low level gfx stuff
 	int PutCMAP();
 #endif
 	static fbClass *getInstance();
-#ifdef ENABLE_LIBEPLAYER3
-//	"hack" for libeplayer3 fb access
-	int getFD() { return fbFd; }
-	unsigned char * getLFB_Direct() { return lfb; }
-	int getScreenResX() { return xRes; }
-	int getScreenResY() { return yRes; }
-#endif
 #if defined(__sh__)
 	void clearFBblit();
 	int getFBdiff(int ret);
